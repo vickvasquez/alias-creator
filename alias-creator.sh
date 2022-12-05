@@ -1,14 +1,14 @@
 #!/bin/bash
-set -e
+set -ue
 
 HOME=$(echo $HOME)
-FILENAME_TO_SAVE_ALIAS="$HOME/.my-aliases"
+PATH_TARGET_ALIAS="$HOME/.my-aliases"
 
-file_to_export_alias=""
+profile_file_path=""
 
 target_folder=$1
 
-Help() {
+help() {
   echo
   echo "Alias Creator for UNIX system"
   echo
@@ -20,7 +20,7 @@ Help() {
 
 if [ -z $target_folder ]; then
   echo "> ERROR: Specify the path of the containing folder to set the aliases"
-  Help
+  help
   exit 1
 fi
 
@@ -29,33 +29,100 @@ if [ ! -d $target_folder ]; then
   exit 1
 fi
 
-function getFileToCreateAlias() {
-  local files=(.zshrc .bashrc .bash_alias .bash_profile .profile)
+append_data_to_file() {
+  local file_path=$1
+  local data_to_append=$2
 
-  for file in $files; do
-    if [ ! -z "$HOME/$file" ]; then
-      file_to_export_alias="$HOME/$file"
+  echo "${data_to_append}" >>"$file_path"
+}
+
+get_profile_file() {
+  local files=(.zhrc .bashrc .bash_alias .bash_profile .profile)
+
+  for file in "${files[@]}"; do
+    path="${HOME}/${file}"
+
+    if [ -f $path ]; then
+      profile_file_path="$HOME/$file"
       break
     fi
   done
 }
 
-getFileToCreateAlias
+ensure_path_target_file() {
+  if [ ! -d $PATH_TARGET_ALIAS ]; then
+    mkdir -p "$PATH_TARGET_ALIAS"
+  fi
+}
+
+ensure_profile_file() {
+  if [ -z $profile_file_path ]; then
+    echo "Profile file not present"
+    exit 1
+  fi
+}
+
+has_contains_text() {
+  local pattern=$1
+  local file_name=$2
+
+  local matches=$(grep -n "${pattern}" $file_name | wc -l)
+
+  if [ $matches == 0 ]; then
+    echo false
+  else
+    echo true
+  fi
+}
+
+append_path_target_file_to_profile_file() {
+  local path_target_alias=$1
+  local profile_file_path=$2
+
+  local is_loaded_target_file=$(has_contains_text ". ${path_target_alias}" $profile_file_path)
+
+  if ! $is_loaded_target_file ; then
+    append_data_to_file $profile_file_path ". ${path_target_alias}"
+  fi
+}
+
+add_alias_to_target_file() {
+  local path_target_alias=$1
+  local alias_name=$2
+
+  loaded_alias=false
+
+  if [ -f $path_target_alias ]; then
+    local matches=$(has_contains_text $alias_name $path_target_alias)
+
+    loaded_alias=$matches
+  fi
+
+  if ! $loaded_alias; then
+    append_data_to_file $path_target_alias "alias $alias_name"
+  fi
+}
+
+get_profile_file
+ensure_profile_file
+ensure_path_target_file
+
+filename_target_alias=$(basename $target_folder)
+path_target_alias="$PATH_TARGET_ALIAS/$filename_target_alias"
 
 folders=($(ls -d $target_folder/*/))
-
-echo "> Creating alias .....\n"
 
 for folder in "${folders[@]}"; do
   alias_name=$(basename $folder)
 
   echo "> Creating alias for -> ${alias_name}"
 
-  echo "alias $alias_name=$folder" >>$FILENAME_TO_SAVE_ALIAS
+  add_alias_to_target_file $path_target_alias "${alias_name}=${folder}"
 done
 
-echo ". $FILENAME_TO_SAVE_ALIAS" >>$file_to_export_alias
+append_path_target_file_to_profile_file $path_target_alias $profile_file_path
 
-echo "\n> Alias created in $FILENAME_TO_SAVE_ALIAS"
-echo "> Run: source $file_to_export_alias"
+echo
+echo "> Alias created in $path_target_alias"
+echo "> Run: source $profile_file_path"
 echo "> Happy coding :)"

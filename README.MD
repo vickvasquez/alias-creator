@@ -15,7 +15,7 @@ chmod +x ./alias-creator
 ```bash
 ./alias-creator.sh ~/Documents
 ```
-After finish, automatically create a file with name `./my-aliases` in `$HOME` path
+After finish, automatically create a file with name `./my-aliases/Documents` in `$HOME` path
 
 ## Example
 ```bash
