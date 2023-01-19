@@ -6,26 +6,26 @@ PATH_TARGET_ALIAS="$HOME/.my-aliases"
 
 profile_file_path=""
 
-target_folder=$1
+target_folder="${1:-}"
 
 help() {
   echo
   echo "Alias Creator for UNIX system"
   echo
-  echo "Usage: alias-creator.sh ~/path-folder/"
+  echo "Usage: alias-creator ~/path-folder/"
   echo
   echo "Example:"
   echo "  alias-creator.sh ~/Documents/"
 }
 
 if [ -z $target_folder ]; then
-  echo "> ERROR: Specify the path of the containing folder to set the aliases"
+  echo "[ERROR]: Specify the path of the containing folder to set the aliases"
   help
   exit 1
 fi
 
 if [ ! -d $target_folder ]; then
-  echo "> ERROR: ${target_folder} no exists, specify another path"
+  echo "[ERROR]: Path '${target_folder}' not exist, specify an existing path"
   exit 1
 fi
 
@@ -37,9 +37,9 @@ append_data_to_file() {
 }
 
 get_profile_file() {
-  local files=(.zhrc .bashrc .bash_alias .bash_profile .profile)
+  SUPPORTED_PROFILE_FILES=(.zshrc bashrc bash_alias bash_profile .profile)
 
-  for file in "${files[@]}"; do
+  for file in "${SUPPORTED_PROFILE_FILES[@]}"; do
     path="${HOME}/${file}"
 
     if [ -f $path ]; then
@@ -57,7 +57,8 @@ ensure_path_target_file() {
 
 ensure_profile_file() {
   if [ -z $profile_file_path ]; then
-    echo "Profile file not present"
+    echo "[ERROR]: None of the supported profile files are found on your file system"
+    echo "  Supported profile files: ${SUPPORTED_PROFILE_FILES[@]}"
     exit 1
   fi
 }
@@ -115,7 +116,7 @@ folders=($(ls -d $target_folder/*/))
 for folder in "${folders[@]}"; do
   alias_name=$(basename $folder)
 
-  echo "> Creating alias for -> ${alias_name}"
+  echo "[INFO]: Creating alias for -> ${alias_name}"
 
   add_alias_to_target_file $path_target_alias "${alias_name}=${folder}"
 done
@@ -123,6 +124,6 @@ done
 append_path_target_file_to_profile_file $path_target_alias $profile_file_path
 
 echo
-echo "> Alias created in $path_target_alias"
-echo "> Run: source $profile_file_path"
-echo "> Happy coding :)"
+echo "[INFO]: Alias created in $path_target_alias"
+echo "[INFO]: Run: source $profile_file_path"
+echo "[INFO]: Happy coding :)"
